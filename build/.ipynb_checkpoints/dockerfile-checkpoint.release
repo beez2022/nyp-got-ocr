@@ -1,0 +1,29 @@
+FROM python:3.10
+
+RUN apt-get update && apt-get install ffmpeg libsm6 libxext6 libmagic-dev poppler-utils tesseract-ocr -y
+
+RUN pip install --upgrade pip
+
+RUN pip install numpy==1.24.4
+#RUN pip install jupyterlab
+RUN pip install requests
+RUN pip install -U transformers==4.36.0
+RUN pip install pyPDF2
+RUN pip install accelerate
+RUN pip install urllib3
+RUN pip install fastapi[all]
+RUN pip install Pillow==10.1.0
+RUN pip install timm==0.9.10
+RUN pip install torch==2.1.2
+RUN pip install torchvision==0.16.2
+RUN pip install sentencepiece==0.1.99
+
+ENV CPM_MODEL_DIR="/apps/models/models--openbmb--MiniCPM-V/snapshots/b1c9acf7666efb99cc69b461aad497441aaa2f4a/"
+USER root
+RUN mkdir /apps
+RUN mkdir /apps/minicpm-v
+COPY src /apps
+WORKDIR /apps
+
+
+ENTRYPOINT ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "9099"]

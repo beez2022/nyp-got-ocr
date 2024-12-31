@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gotocr
+#  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gotocr
+  template:
+    metadata:
+      labels:
+        app: gotocr
+    spec:
+      containers:
+      - name: gotocr
+        image: bk255/nyp-got-ocr-gpu:31.12.1
+        ports:
+        - containerPort: 9099
+          protocol: TCP
+        command: ["uvicorn"]
+        args: ["main:app", "--host", "0.0.0.0", "--port", "9099"]
+        imagePullPolicy: Always
+        volumeMounts: 
+        - mountPath: "/root/.cache"
+          name: model-storage
+        - mountPath: /apps/filedata
+          name: file-storage
+      resources:
+        limits:
+          nvidia.com/gpu: 1
+      volumes:
+        - name: model-storage
+          hostPath:
+            path: /mnt/c/sbk/gotocr/models
+            type: Directory
+        - name: file-storage
+          hostPath:
+            path: /mnt/c/sbk/gotocr/models
+            type: Directory
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: gotocr
+  name: gotocr-svc
+spec:
+  ports:
+  - port: 9099
+    protocol: TCP
+    targetPort: 9099
+    nodePort: 30109
+  selector:
+    app: gotocr
+#  type: ClusterIP
+  externalIPs: 
+  - 172.27.86.176
+  type: LoadBalancer

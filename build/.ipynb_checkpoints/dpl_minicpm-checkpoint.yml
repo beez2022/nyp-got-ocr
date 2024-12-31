@@ -1,0 +1,96 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minicpm
+#  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: minicpm
+  template:
+    metadata:
+      labels:
+        app: minicpm
+    spec:
+      containers:
+      - name: minicpm
+        image: spdata/ecfs-dev:1.0.5
+        ports:
+        - containerPort: 9099
+          protocol: TCP
+        command: ["uvicorn"]
+        args: ["server.server1:app", "--host", "0.0.0.0", "--port", "9099"]
+        imagePullPolicy: Never
+        volumeMounts: 
+        - mountPath: "/apps/pvc"
+          name: model-storage
+        env:
+        - name: TOKEN_VALUE
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: token
+      - name: ecfs-explain
+        image: ecfs-explain:latest
+        ports:
+        - containerPort: 8081
+          protocol: TCP
+        command: ["/bin/bash"]
+        args: ["-c", "python /apps/gradio1.py"]
+        imagePullPolicy: Never
+        volumeMounts:
+        - mountPath: "/apps/pvc"
+          name: model-storage
+        
+      initContainers:
+      - name: git-clone
+        image: gitimage:latest
+        imagePullPolicy: Never
+        command: ["/bin/bash"]
+        args: ["-c", "/apps/utils/run_gitclone.sh"]
+        volumeMounts:
+        - mountPath: "/apps/pvc/"
+          name: model-storage
+        env:
+        - name: GIT_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: git_user
+        - name: GIT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: git_password
+
+      volumes:
+        - name: model-storage
+          persistentVolumeClaim:
+            claimName: postgres-pvc
+            
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: ecfs
+  name: ecfs-service
+spec:
+  ports:
+  - port: 9099
+    protocol: TCP
+    targetPort: 9099
+  selector:
+    app: ecfs
+  type: ClusterIP
+
+  ports:
+  - port: 8081
+    protocol: TCP
+    targetPort: 8081
+  selector:
+    app: ecfs
+  type: ClusterIP

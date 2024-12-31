@@ -1,0 +1,39 @@
+FROM nvidia/cuda:12.4.0-base-ubuntu22.04
+
+# Install necessary packages
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip
+
+#FROM python:3.10
+
+RUN apt-get update && apt-get install ffmpeg libsm6 libxext6 libmagic-dev poppler-utils tesseract-ocr -y
+
+RUN pip install --upgrade pip
+
+RUN pip install numpy==1.24.4
+RUN pip install jupyterlab
+RUN pip install requests
+RUN pip install -U transformers==4.37.2
+RUN pip install pyPDF2
+RUN pip install accelerate==0.28.0
+RUN pip install urllib3
+RUN pip install fastapi[all]
+RUN pip install Pillow==10.1.0
+#RUN pip install torch==2.0.1
+#RUN pip install torchvision==0.15.2
+
+RUN pip install torch==2.4.0
+RUN pip install torchvision==0.19.0
+RUN pip install verovio==4.3.1
+RUN pip install tiktoken==0.6.0
+#RUN pip3 install torch==2.4.0 torchvision==0.19.0 --index-url https://download.pytorch.org/whl/cu124
+#ENV CPM_MODEL_DIR="/apps/models/models--openbmb--MiniCPM-V/snapshots/b1c9acf7666efb99cc69b461aad497441aaa2f4a/"
+USER root
+RUN mkdir /apps
+RUN mkdir /apps/filedata
+COPY src /apps
+WORKDIR /apps
+
+#ENTRYPOINT ["jupyter", "lab", "--ip=0.0.0.0", "--no-browser",  "--allow-root", "--NotebookApp.token=''" , "--NotebookApp.password=''"]
+ENTRYPOINT ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "9099"]
